@@ -1,30 +1,19 @@
-import express from "express";
-import { errorHandler } from './shared/error-handler.js';
-import { jobsRouter } from "./modules/jobs/jobs.router.js";
+import express from 'express';
 import { authRouter } from './modules/auth/auth.routes.js';
-import { authMiddleware } from './shared/auth-middleware.js';
+import { companiesRouter } from './modules/companies/companies.routes.js';
+import { applicantsRouter } from './modules/applicants/applicants.routes.js';
+import { adminRouter } from './modules/admin/admin.routes.js';
+import { errorHandler } from './shared/error-handler.js';
 
 const app = express();
-
-// Middleware
 app.use(express.json());
-app.use('/jobs', jobsRouter);
-// app.use('/users', userRouter);
-app.use('/auth', authRouter);
 
-// Routes
-// app.get('/health', async (req, res) => {
-//   return res.send({
-//     status: 'ok',
-//     uptime: Math.floor(process.uptime()),
-//     timestamp: new Date().toISOString(),
-//   });
-// });
-app.get('/test/protected', authMiddleware, (req, res) => {
-  res.json({ ok: true, user: req.user });
-});
-
+app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+app.use('/api/auth', authRouter);
+app.use('/api/companies', companiesRouter);
+app.use('/api/applicants', applicantsRouter);
+app.use('/api/admin', adminRouter);
 
 app.use(errorHandler);
 
-export default app;
+export { app };
