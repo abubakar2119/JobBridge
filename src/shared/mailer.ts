@@ -34,3 +34,14 @@ export async function sendVerificationEmail(to: string, otp: string): Promise<vo
     ].join('\n'),
   });
 }
+
+export async function sendMail(options: {
+  to: string;
+  subject: string;
+  text: string;
+}): Promise<void> {
+  await transporter.sendMail({
+    from: config.SMTP_FROM,
+    ...options,
+  });
+}

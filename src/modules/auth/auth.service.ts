@@ -21,6 +21,18 @@ import { ConflictError, UnauthorizedError } from '../../shared/errors.js';
 import { findUserByEmail, createUser } from './auth.repo.js';
 import type { RegisterInput, LoginInput } from './auth.schema.js';
 import { signAccessToken } from '../../shared/token.js';
+import bcrypt from 'bcrypt';
+import { BadRequestError, ForbiddenError } from '../../shared/errors.js';
+import {
+  findInvitationByToken,
+ 
+  createVerifiedUser,
+  createRecruiterRow,
+  deleteInvitation,
+} from './auth.repo.js';
+import { generateTokenPair } from '../../shared/token.js';
+import type { AcceptInvitationInput } from './auth.schema.js';
+
 
 // A pre-computed bcrypt hash of a throwaway string.
 // Used in the login path when no user is found, so the timing cost of
@@ -66,17 +78,19 @@ export async function login(
     throw new UnauthorizedError('Invalid credentials');
   }
 
+  
+  // After (Chapter 23):
+  if (user.status === 'pending') {
+    throw new UnauthorizedError('Email not verified');
+  }
+  if (user.status === 'suspended') {
+    throw new UnauthorizedError('Account suspended');
+  }
+
   if (user.status !== 'active') {
   throw new UnauthorizedError('Account suspended');
 }
 
-// After (Chapter 23):
-if (user.status === 'pending') {
-  throw new UnauthorizedError('Email not verified');
-}
-if (user.status === 'suspended') {
-  throw new UnauthorizedError('Account suspended');
-}
   const valid = await verifyPassword(input.password, user.password_hash);
   if (!valid) {
     throw new UnauthorizedError('Invalid credentials');
@@ -218,3 +232,48 @@ export async function resendVerification(email: string): Promise<void> {
   await createEmailVerification(user.id, otpHash, expiresAt);
   await sendVerificationEmail(email, otp);
 }
+
+export async function acceptInvitation(input: AcceptInvitationInput) {
+  // Step 1: Resolve the invitation
+  const invitation = await findInvitationByToken(input.token);
+  if (!invitation) {
+    throw new BadRequestError('Invalid or expired invitation token.');
+  }
+
+  // Step 2: Email must match the invitation
+  if (invitation.email.toLowerCase() !== input.email.toLowerCase()) {
+    throw new BadRequestError('Invalid or expired invitation token.');
+  }
+
+  // Step 3: Resolve or create the user
+  let userId: string;
+  let userRole: string;
+
+  const existingUser = await findUserByEmail(input.email);
+
+  if (existingUser) {
+    if (existingUser.status !== 'active') {
+      throw new ForbiddenError('Your account is not active.');
+    }
+    userId = existingUser.id;
+    userRole = existingUser.role;
+  } else {
+    // New user — password required
+    if (!input.password) {
+      throw new BadRequestError('Password is required to create a new account.');
+    }
+    const passwordHash = await bcrypt.hash(input.password, 12);
+    userId = await createVerifiedUser(input.email, passwordHash);
+    userRole = 'recruiter';
+  }
+
+  // Step 4: Attach the user to the company
+  await createRecruiterRow(userId, invitation.companyId, invitation.role);
+
+  // Step 5: Delete the invitation (one-time use)
+  await deleteInvitation(invitation.id);
+
+  // Step 6: Issue tokens so the invitee is immediately logged in
+  return generateTokenPair(userId, userRole as any);
+}
+

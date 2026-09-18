@@ -1,39 +1,43 @@
 import { Router } from 'express';
-import { validateBody, validateQuery,validateParam, uuidParam} from '../../shared/validate.js';
-import { createJobSchema, listJobsQuerySchema } from './jobs.schema.js';
+import { authMiddleware } from '../../shared/auth-middleware.js';
+import { requireRole } from '../../shared/require-role.js';
+import { getRecruiterCompany } from '../companies/companies.repo.js';
+import { assertJobOwnership } from './jobs.repo.js';
+import { NotFoundError } from '../../shared/errors.js';
 
 const router = Router();
 
-router.get('/', async (req, res, next) => {
+router.use(authMiddleware, requireRole('recruiter'));
+
+/**
+ * GET /api/jobs/:id
+ *
+ * Returns a job posting owned by the authenticated recruiter's company.
+ * Steps:
+ *  1. Resolve companyId from the verified JWT (via recruiters table).
+ *  2. Assert the job belongs to that company.
+ *  3. Return the job data.
+ *
+ * A recruiter from a different company receives 404 — not 403.
+ * The response does not confirm the job exists at all.
+ */
+router.get('/:id', async (req, res, next) => {
   try {
-    const query = validateQuery(listJobsQuerySchema, req.query);
-    // query.status, query.page, query.limit are typed and validated
-    // ... call service
+    const recruiter = await getRecruiterCompany(req.user!.userId);
+
+    if (!recruiter) {
+      return next(new NotFoundError('No company associated with this account'));
+    }
+
+    await assertJobOwnership(req.params.id, recruiter.companyId);
+
+    // assertJobOwnership throws if ownership fails.
+    // Reaching this point means the job exists and belongs to this company.
+    // A full implementation would fetch complete job details here.
+    res.json({ jobId: req.params.id, companyId: recruiter.companyId });
   } catch (err) {
     next(err);
   }
 });
-
-router.post('/', async (req, res, next) => {
-  try {
-    const body = validateBody(createJobSchema, req.body);
-    // body is CreateJobInput — title, description, status, etc. all typed
-    // ... call service
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.get('/:jobId', async (req, res, next) => {
-  try {
-    const jobId = validateParam(uuidParam, req.params.jobId);
-    // jobId: string — guaranteed UUID format
-    // ... call service
-  } catch (err) {
-    next(err);
-  }
-});
-
-
 
 export { router as jobsRouter };

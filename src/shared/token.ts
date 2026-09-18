@@ -2,6 +2,7 @@
 import jwt from 'jsonwebtoken';
 import { config } from './config.js';
 import { UnauthorizedError } from './errors.js';
+import crypto from 'node:crypto';
 
 // Input shape for signing — iat and exp are absent here because jwt.sign
 // adds them automatically based on the expiresIn option.
@@ -49,4 +50,26 @@ export function verifyAccessToken(token: string): TokenPayload {
     }
     throw err;
   }
+}
+
+export function generateTokenPair(
+  userId: string,
+  role: 'admin' | 'recruiter' | 'applicant',
+): {
+  accessToken: string;
+  refreshToken: string;
+} {
+  const accessToken = signAccessToken({
+    sub: userId,
+    role,
+  });
+
+  const refreshToken = crypto
+    .randomBytes(32)
+    .toString('hex');
+
+  return {
+    accessToken,
+    refreshToken,
+  };
 }

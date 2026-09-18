@@ -1,9 +1,11 @@
 // src/shared/db.ts
+
 import pkg from 'pg';
-const { Pool } = pkg;
 import { config } from './config.js';
 
-export function createDbClient(connectionString: string): Pool {
+const { Pool } = pkg;
+
+export function createDbClient(connectionString: string) {
   return new Pool({
     connectionString,
   });

@@ -3,7 +3,7 @@
     export const registerSchema = z.object({
     email:    z.string().email('Must be a valid email address').transform(v => v.toLowerCase()),
     password: z.string().min(8, 'Password must be at least 8 characters').max(72, 'Password must be 72 characters or fewer'),
-    role:     z.enum(['admin','recruiter', 'applicant'], { errorMap: () => ({ message: 'Invalid role' }) }),
+    role:     z.enum(['recruiter', 'applicant'], { errorMap: () => ({ message: 'Invalid role' }) }),
     });
 
     export const loginSchema = z.object({
@@ -26,6 +26,14 @@
 export const resendVerificationSchema = z.object({
   email: z.string().email(),
 });
+
+export const acceptInvitationSchema = z.object({
+  token: z.string().min(1),
+  email: z.string().email(),
+  password: z.string().min(8).optional(),
+});
+
+export type AcceptInvitationInput = z.infer<typeof acceptInvitationSchema>;
 
     export type RegisterInput = z.infer<typeof registerSchema>;
     export type LoginInput    = z.infer<typeof loginSchema>;

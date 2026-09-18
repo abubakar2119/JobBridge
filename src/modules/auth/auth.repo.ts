@@ -1,6 +1,7 @@
 // src/modules/auth/auth.repo.ts
-
 import { db } from "../../shared/db.js";
+import crypto from 'crypto';
+import { v4 as uuid } from 'uuid';
 
 
 export interface UserRow {
@@ -8,7 +9,7 @@ export interface UserRow {
   email:         string;
   password_hash: string;
   role:          'admin' | 'recruiter' | 'applicant';
-  status:        'active' | 'inactive' | 'pending' | 'suspended';
+  status: 'unverified' | 'pending' | 'active' | 'suspended';
 }
 
 export async function findUserByEmail(email: string): Promise<UserRow | null> {
@@ -144,5 +145,62 @@ export async function activateUser(userId: string): Promise<void> {
   await db.query(
     `UPDATE users SET status = 'active' WHERE id = $1`,
     [userId],
+  );
+}
+
+export async function findInvitationByToken(rawToken: string): Promise<{
+  id: string;
+  companyId: string;
+  email: string;
+  role: string;
+} | null> {
+  const tokenHash = crypto
+    .createHash('sha256')
+    .update(rawToken)
+    .digest('hex');
+
+  const result = await db.query(
+    `SELECT id, company_id AS "companyId", email, role
+     FROM invitations
+     WHERE token_hash = $1 AND expires_at > NOW()`,
+    [tokenHash],
+  );
+
+  return result.rows[0] ?? null;
+}
+
+export async function createVerifiedUser(
+  email: string,
+  passwordHash: string,
+): Promise<string> {
+  const userId = uuid();
+
+  await db.query(
+    `INSERT INTO users (id, email, password_hash, role, status)
+     VALUES ($1, $2, $3, 'recruiter', 'active')`,
+    [userId, email, passwordHash],
+  );
+
+  return userId;
+}
+
+export async function createRecruiterRow(
+  userId: string,
+  companyId: string,
+  role: string,
+): Promise<void> {
+  const recruiterId = uuid();
+
+  await db.query(
+    `INSERT INTO recruiters (id, user_id, company_id, company_role, created_at)
+     VALUES ($1, $2, $3, $4, NOW())`,
+    [recruiterId, userId, companyId, role],
+  );
+}
+
+export async function deleteInvitation(invitationId: string): Promise<void> {
+  await db.query(
+    `DELETE FROM invitations WHERE id = $1`,
+    [invitationId],
   );
 }
