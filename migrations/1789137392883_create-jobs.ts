@@ -6,6 +6,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       id                  uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
       company_id          uuid        NOT NULL REFERENCES companies(id) ON DELETE RESTRICT,
       title               text        NOT NULL,
+      location             text        NOT NULL,
       description         text        NOT NULL,
       status              text        NOT NULL DEFAULT 'draft'
                                         CHECK (status IN ('draft', 'open', 'closed')),
@@ -18,6 +19,13 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
   `);
 }
 
+
+ pgm.sql(`
+  CREATE INDEX IF NOT EXISTS jobs_company_created_idx
+    ON jobs (company_id, created_at DESC, id DESC);
+`);
+
 export async function down(pgm: MigrationBuilder): Promise<void> {
   pgm.sql(`DROP TABLE jobs;`);
 }
+

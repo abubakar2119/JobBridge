@@ -9,17 +9,19 @@ const screeningQuestionInputSchema = z.object({
 const jobFieldsSchema = z.object({
   title:               z.string().min(1, 'Title is required').max(200),
   description:         z.string().min(1, 'Description is required').max(100_000),
+  location:            z.string().min(1, 'Location is required'),
+  employment_type:     z.string().min(1, 'Employment type is required'),
   status:              z.enum(['draft', 'open']),
   deadline:            z.string().date('Deadline must be a date in YYYY-MM-DD format').optional(),
-  attributes:          z.object({}).catchall(z.unknown()),
+  attributes:          z.object({}).catchall(z.unknown()).optional(),
   screening_questions: z.array(screeningQuestionInputSchema),
 });
 
-export const createJobSchema = jobFieldsSchema.extend({
-  status:              z.enum(['draft', 'open']).default('draft'),
-  attributes:          z.object({}).catchall(z.unknown()).default({}),
-  screening_questions: z.array(screeningQuestionInputSchema).default([]),
-});
+  export const createJobSchema = jobFieldsSchema.extend({
+    status:              z.enum(['draft', 'open']).default('draft'),
+    attributes:          z.object({}).catchall(z.unknown()).default({}),
+    screening_questions: z.array(screeningQuestionInputSchema).default([]),
+  });
 
 export const updateJobSchema = jobFieldsSchema.partial();
 
@@ -29,6 +31,14 @@ export const listJobsQuerySchema = z.object({
   limit:  z.coerce.number().int().min(1).max(100).default(20),
 });
 
+
+export const listCompanyJobsSchema = z.object({
+  status: z.enum(['draft', 'open', 'closed']).optional(),
+  cursor: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
+
+export type ListCompanyJobsInput = z.infer<typeof listCompanyJobsSchema>;
 export type CreateJobInput   = z.infer<typeof createJobSchema>;
 export type UpdateJobInput   = z.infer<typeof updateJobSchema>;
 export type ListJobsQuery    = z.infer<typeof listJobsQuerySchema>;

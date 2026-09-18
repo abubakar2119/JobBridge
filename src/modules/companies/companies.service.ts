@@ -62,13 +62,10 @@ export async function openWorkspace(userId: string, input: CreateCompanyInput) {
 //   // ... rest of the invite logic
 // }
 
-function assertCompanyRole(
-  companyRole: string,
-  allowed: string[],
-  message = 'You do not have permission to perform this action.',
-) {
+// src/modules/companies/companies.service.ts
+export function assertCompanyRole(companyRole: string, allowed: string[]) {
   if (!allowed.includes(companyRole)) {
-    throw new ForbiddenError(message);
+    throw new ForbiddenError('You do not have permission to perform this action.');
   }
 }
 
