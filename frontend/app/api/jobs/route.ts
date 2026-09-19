@@ -1,0 +1,2 @@
+import { cookies } from 'next/headers'; import { NextRequest,NextResponse } from 'next/server';
+export async function POST(request:NextRequest){const token=(await cookies()).get('access_token')?.value;const response=await fetch(`${process.env.API_URL}/api/jobs`,{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:await request.text()});return NextResponse.json(await response.json(),{status:response.status});}

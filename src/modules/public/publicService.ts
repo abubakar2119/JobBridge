@@ -1,0 +1,146 @@
+import {db} from '../../shared/db.js';
+import { NotFoundError } from '../../shared/errors.js';
+
+interface PublicJobsQuery {
+  q?:               string;
+  location?:        string;
+  employment_type?: string;
+  cursor?:          string;
+  limit:            number;
+}
+
+interface CursorData {
+  createdAt: string;
+  id:        string;
+}
+
+function decodeCursor(cursor: string): CursorData | null {
+  try {
+    const raw = Buffer.from(cursor, 'base64url').toString('utf8');
+    const pipe = raw.indexOf('|');
+    if (pipe === -1) return null;
+    return { createdAt: raw.slice(0, pipe), id: raw.slice(pipe + 1) };
+  } catch {
+    return null;
+  }
+}
+
+function encodeCursor(createdAt: Date, id: string): string {
+  const raw = `${createdAt.toISOString()}|${id}`;
+  return Buffer.from(raw).toString('base64url');
+}
+
+export async function getPublicJobs(query: PublicJobsQuery) {
+  const { q, location, employment_type, cursor, limit } = query;
+  const params: unknown[] = [];
+  const conditions: string[] = [
+    `j.status = 'open'`,
+    `c.status = 'verified'`,
+  ];
+
+  // Text search — temporary ILIKE; replaced by full-text search in ch43
+  if (q) {
+    params.push(`%${q}%`);
+    conditions.push(`(j.title ILIKE $${params.length} OR j.description ILIKE $${params.length})`);
+  }
+
+  if (location) {
+    params.push(location);
+    conditions.push(`j.location ILIKE $${params.length}`);
+  }
+
+  if (employment_type) {
+    params.push(employment_type);
+    conditions.push(`j.employment_type = $${params.length}`);
+  }
+
+  const decoded = cursor ? decodeCursor(cursor) : null;
+  if (decoded) {
+    params.push(decoded.createdAt, decoded.id);
+    conditions.push(
+      `(j.created_at, j.id) < ($${params.length - 1}::timestamptz, $${params.length})`
+    );
+  }
+
+  const whereClause = conditions.join(' AND ');
+  params.push(limit + 1);
+  const limitParam = params.length;
+
+  const sql = `
+    SELECT
+      j.id,
+      j.title,
+      j.location,
+      j.employment_type,
+      j.salary_min,
+      j.salary_max,
+      j.created_at,
+      c.name AS company_name
+    FROM jobs j
+    JOIN companies c ON c.id = j.company_id
+    WHERE ${whereClause}
+    ORDER BY j.created_at DESC, j.id DESC
+    LIMIT $${limitParam}
+  `;
+
+  const { rows } = await db.query(sql, params);
+
+  const hasNextPage = rows.length > limit;
+  const jobs = hasNextPage ? rows.slice(0, limit) : rows;
+
+  const nextCursor =
+    hasNextPage ? encodeCursor(jobs[jobs.length - 1].created_at, jobs[jobs.length - 1].id) : null;
+
+  return {
+    jobs: jobs.map((r) => ({
+      id:             r.id,
+      title:          r.title,
+      companyName:    r.company_name,
+      location:       r.location,
+      employmentType: r.employment_type,
+      salaryMin:      r.salary_min,
+      salaryMax:      r.salary_max,
+      createdAt:      r.created_at,
+    })),
+    nextCursor,
+  };
+}
+
+export async function getPublicJobById(id: string) {
+  const sql = `
+    SELECT
+      j.id,
+      j.title,
+      j.description,
+      j.location,
+      j.employment_type,
+      j.salary_min,
+      j.salary_max,
+      j.attributes,
+      j.screening_questions,
+      j.created_at,
+      c.name AS company_name
+    FROM jobs j
+    JOIN companies c ON c.id = j.company_id
+    WHERE j.id = $1
+      AND j.status = 'open'
+      AND c.status = 'verified'
+  `;
+  const { rows } = await db.query(sql, [id]);
+  if (rows.length === 0) throw new NotFoundError('Job not found.');
+
+  const r = rows[0];
+  return {
+    id:                 r.id,
+    title:              r.title,
+    description:        r.description,
+    companyName:        r.company_name,
+    location:           r.location,
+    employmentType:     r.employment_type,
+    salaryMin:          r.salary_min,
+    salaryMax:          r.salary_max,
+    attributes:         r.attributes,
+    screeningQuestions: r.screening_questions,
+    createdAt:          r.created_at,
+  };
+}

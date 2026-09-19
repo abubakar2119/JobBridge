@@ -1,0 +1,2 @@
+import { apiFetch } from '@/lib/api'; import JobActions from './JobActions';
+export default async function Job({params}:{params:Promise<{id:string}>}){const {id}=await params;const response=await apiFetch(`/api/jobs/${id}`);if(!response.ok)return <p>Job not found.</p>;const job=await response.json();return <main><h1>{job.title ?? `Job ${id}`}</h1><p>{job.status}</p><p>{job.description}</p><JobActions jobId={id} status={job.status}/></main>}
