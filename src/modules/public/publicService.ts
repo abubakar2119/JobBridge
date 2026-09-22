@@ -1,5 +1,11 @@
+import { config } from '../../shared/config.js';
 import {db} from '../../shared/db.js';
 import { NotFoundError } from '../../shared/errors.js';
+import { redis } from '../../shared/redis.js';
+
+
+const PUBLIC_PAGE1_KEY = 'jobs:public:page1';
+
 
 interface PublicJobsQuery {
   q?:               string;
@@ -32,16 +38,31 @@ function encodeCursor(createdAt: Date, id: string): string {
 
 export async function getPublicJobs(query: PublicJobsQuery) {
   const { q, location, employment_type, cursor, limit } = query;
+
+  // Cache-aside: only cache the unfiltered first page
+  const isFirstPage = !cursor;
+  const hasFilters = q || location || employment_type;
+  const useCached = isFirstPage && !hasFilters && limit === 20;
+
+  if (useCached) {
+    const cached = await redis.get(PUBLIC_PAGE1_KEY);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  }
+
+  // --- DB query (same as ch39/ch43, with full-text search) ---
   const params: unknown[] = [];
   const conditions: string[] = [
     `j.status = 'open'`,
     `c.status = 'verified'`,
   ];
 
-  // Text search — temporary ILIKE; replaced by full-text search in ch43
   if (q) {
-    params.push(`%${q}%`);
-    conditions.push(`(j.title ILIKE $${params.length} OR j.description ILIKE $${params.length})`);
+    params.push(q);
+    conditions.push(
+      `j.search_vector @@ plainto_tsquery('english', $${params.length})`
+    );
   }
 
   if (location) {
@@ -87,11 +108,12 @@ export async function getPublicJobs(query: PublicJobsQuery) {
 
   const hasNextPage = rows.length > limit;
   const jobs = hasNextPage ? rows.slice(0, limit) : rows;
-
   const nextCursor =
-    hasNextPage ? encodeCursor(jobs[jobs.length - 1].created_at, jobs[jobs.length - 1].id) : null;
+    hasNextPage
+      ? encodeCursor(jobs[jobs.length - 1].created_at, jobs[jobs.length - 1].id)
+      : null;
 
-  return {
+  const result = {
     jobs: jobs.map((r) => ({
       id:             r.id,
       title:          r.title,
@@ -104,6 +126,18 @@ export async function getPublicJobs(query: PublicJobsQuery) {
     })),
     nextCursor,
   };
+
+  // Store in Redis if this was the cacheable request
+if (useCached) {
+  await redis.set(
+    PUBLIC_PAGE1_KEY,
+    JSON.stringify(result),
+    'EX',
+    config.cacheTtlSeconds
+  );
+}
+
+  return result;
 }
 
 export async function getPublicJobById(id: string) {
@@ -144,3 +178,4 @@ export async function getPublicJobById(id: string) {
     createdAt:          r.created_at,
   };
 }
+

@@ -21,5 +21,6 @@ app.use(errorHandler);
 app.use('/api/public', publicRouter);
 app.use('/api/auth',    authRouter);
 app.use('/api/jobs',    authMiddleware, jobsRouter);
+app.use('/api/applicants', applicantsRouter);
 
 export { app };

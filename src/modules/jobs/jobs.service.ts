@@ -4,6 +4,9 @@ import { getRecruiterCompany } from '../companies/companies.repo.js';
 import { assertCompanyRole } from '../companies/companies.service.js';
 import { assertJobOwnership, createJob, updateJob, setJobStatus, listJobsForCompany, encodeCursor } from './jobs.repo.js';
 import type { CreateJobInput, ListCompanyJobsInput } from './jobs.schema.js';
+import { redis } from '../../shared/redis.js';
+import { db } from '../../shared/db.js';
+const PUBLIC_BOARD_CACHE_KEY = 'jobs:public:page1';
 
 export async function getJob(jobId: string, requestingCompanyId: string) {
   const job = await jobsRepo.findById(jobId);
@@ -40,24 +43,26 @@ export async function editJob(
   await updateJob(jobId, company.companyId, input);
 }
 
-export async function publishJob(userId: string, jobId: string) {
-  const company = await getRecruiterCompany(userId);
-  if (!company) throw new ForbiddenError('No company workspace found.');
-
-  assertCompanyRole(company.companyRole, [...JOB_POSTERS]);
-
-  await assertJobOwnership(jobId, company.companyId);
-  await setJobStatus(jobId, company.companyId, 'open');
+export async function publishJob(jobId: string, companyId: string): Promise<void> {
+await assertJobOwnership(jobId, companyId);
+await db.query(`UPDATE jobs SET status = 'open' WHERE id = $1`, [jobId]);
+try {
+  await redis.del(PUBLIC_BOARD_CACHE_KEY);
+} catch (err) {
+  // Log the failure. The job is published. Cache will auto-expire in 60s.
+  console.error('[cache] Failed to invalidate public board cache:', err);
+}
 }
 
-export async function closeJob(userId: string, jobId: string) {
-  const company = await getRecruiterCompany(userId);
-  if (!company) throw new ForbiddenError('No company workspace found.');
-
-  assertCompanyRole(company.companyRole, [...JOB_POSTERS]);
-
-  await assertJobOwnership(jobId, company.companyId);
-  await setJobStatus(jobId, company.companyId, 'closed');
+export async function closeJob(jobId: string, companyId: string): Promise<void> {
+await assertJobOwnership(jobId, companyId);
+await db.query(`UPDATE jobs SET status = 'closed' WHERE id = $1`, [jobId]);
+try {
+  await redis.del(PUBLIC_BOARD_CACHE_KEY);
+} catch (err) {
+  // Log the failure. The job is published. Cache will auto-expire in 60s.
+  console.error('[cache] Failed to invalidate public board cache:', err);
+}
 }
 
 export async function getCompanyJobs(userId: string, input: ListCompanyJobsInput) {
@@ -76,3 +81,5 @@ export async function getCompanyJobs(userId: string, input: ListCompanyJobsInput
 
   return { jobs: items, nextCursor };
 }
+
+// TODO (ch59): invalidate 'jobs:public:page1' when company status changes.

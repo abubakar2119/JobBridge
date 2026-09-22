@@ -8,6 +8,8 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       full_name  text        NOT NULL,
       headline   text,
       location   text,
+      bio         text,
+      skills      jsonb NOT NULL DEFAULT '[]',
       attributes jsonb       NOT NULL DEFAULT '{}',
       created_at timestamptz NOT NULL DEFAULT now()
     );
