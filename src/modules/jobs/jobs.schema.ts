@@ -11,6 +11,8 @@ const jobFieldsSchema = z.object({
   description:         z.string().min(1, 'Description is required').max(100_000),
   location:            z.string().min(1, 'Location is required'),
   employment_type:     z.string().min(1, 'Employment type is required'),
+  salary_min:          z.coerce.number().int().nonnegative().optional(),
+  salary_max:          z.coerce.number().int().nonnegative().optional(),
   status:              z.enum(['draft', 'open']),
   deadline:            z.string().date('Deadline must be a date in YYYY-MM-DD format').optional(),
   attributes:          z.object({}).catchall(z.unknown()).optional(),

@@ -21,6 +21,7 @@ import { authMiddleware } from '../../shared/auth-middleware.js';
 import { requireRole } from '../../shared/require-role.js';
 import { acceptInvitationSchema } from './auth.schema.js';
 import { acceptInvitation } from './auth.service.js';
+import { authLimiter } from '../../shared/rateLimiter.js';
 
 
 
@@ -30,7 +31,7 @@ router.get('/admin-only', authMiddleware, requireRole('admin'), (req, res) => {
   res.json({ message: 'admin access confirmed', userId: req.user!.userId });
 });
 
-router.post('/register', async (req, res, next) => {
+router.post('/register',authLimiter, async (req, res, next) => {
   try {
     const body = validateBody(registerSchema, req.body);
     const result = await register(body);
@@ -40,7 +41,7 @@ router.post('/register', async (req, res, next) => {
   }
 });
 
-router.post('/login', async (req, res, next) => {
+router.post('/login',authLimiter, async (req, res, next) => {
   try {
     const body = validateBody(loginSchema, req.body);
     const result = await login(body);
@@ -70,7 +71,7 @@ router.post('/logout', async (req, res, next) => {
   }
 });
 
-router.post('/verify-email', async (req, res, next) => {
+router.post('/verify-email',authLimiter, async (req, res, next) => {
   try {
     const { email, otp } = validateBody(verifyEmailSchema, req.body);
     await verifyEmail(email, otp);
@@ -80,7 +81,7 @@ router.post('/verify-email', async (req, res, next) => {
   }
 });
 
-router.post('/resend-verification', async (req, res, next) => {
+router.post('/resend-verification',authLimiter, async (req, res, next) => {
   try {
     const { email } = validateBody(resendVerificationSchema, req.body);
     await resendVerification(email);

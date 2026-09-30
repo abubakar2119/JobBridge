@@ -1,2 +1,19 @@
-import { cookies } from 'next/headers'; import { NextRequest,NextResponse } from 'next/server';
-export async function POST(request:NextRequest){const token=(await cookies()).get('access_token')?.value;const response=await fetch(`${process.env.API_URL}/api/jobs`,{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:await request.text()});return NextResponse.json(await response.json(),{status:response.status});}
+// frontend/app/api/jobs/route.ts
+import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+const token = (await cookies()).get("access_token")?.value;
+
+  const res = await fetch(`${process.env.API_URL}/api/jobs`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+
+  return NextResponse.json(await res.json(), { status: res.status });
+}

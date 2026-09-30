@@ -17,7 +17,7 @@ const listQuerySchema = z.object({
 });
 
 publicRouter.get('/jobs', async (req: Request, res: Response) => {
-  const query = validateQuery(listQuerySchema, req.query);
+ const query = validateQuery(listQuerySchema, req.query) as z.infer<typeof listQuerySchema>;
   const result = await getPublicJobs(query);
   res.json(result);
 });

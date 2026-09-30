@@ -1,2 +1,88 @@
-import Link from 'next/link'; import { apiFetch } from '@/lib/api';
-export default async function Jobs({searchParams}:{searchParams:Promise<{status?:string;cursor?:string}>}){const q=await searchParams;const p=new URLSearchParams({limit:'20'});if(q.status)p.set('status',q.status);if(q.cursor)p.set('cursor',q.cursor);const response=await apiFetch(`/api/jobs?${p}`);const {jobs=[],nextCursor}=response.ok?await response.json():{jobs:[]};return <main><h1>Jobs</h1><Link href="/dashboard/jobs/new">Post a job</Link><p>{['all','draft','open','closed'].map(s=><Link key={s} href={s==='all'?'/dashboard/jobs':`/dashboard/jobs?status=${s}`}> {s} </Link>)}</p><table><thead><tr><th>Title</th><th>Status</th><th>Created</th></tr></thead><tbody>{jobs.map((j:any)=><tr key={j.id}><td><Link href={`/dashboard/jobs/${j.id}`}>{j.title}</Link></td><td>{j.status}</td><td>{new Date(j.createdAt).toLocaleDateString()}</td></tr>)}</tbody></table>{nextCursor&&<Link href={`/dashboard/jobs?cursor=${nextCursor}`}>Next page</Link>}</main>}
+// frontend/app/dashboard/jobs/page.tsx
+import Link from 'next/link';
+import { apiFetch } from '@/lib/api';
+
+export default async function JobsPage({
+  searchParams,
+}: {
+  searchParams: { status?: string; cursor?: string };
+}) {
+
+const resolvedSearchParams = await searchParams;
+
+  const params = new URLSearchParams();
+  if (resolvedSearchParams.status) params.set('status', resolvedSearchParams.status);
+  if (resolvedSearchParams.cursor) params.set('cursor', resolvedSearchParams.cursor);
+  params.set('limit', '20');
+
+  const res = await apiFetch(`/api/jobs?${params.toString()}`);
+  const data: { jobs: any[]; nextCursor: string | null } = await res.json();
+
+  return (
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-semibold">Jobs</h1>
+        <Link href="/dashboard/jobs/new" className="bg-blue-600 text-white px-4 py-2 rounded">
+          Post a job
+        </Link>
+      </div>
+
+      {/* Status filter */}
+      <div className="flex gap-2 mb-4">
+        {['all', 'draft', 'open', 'closed'].map((s) => (
+          <Link
+            key={s}
+            href={s === 'all' ? '/dashboard/jobs' : `/dashboard/jobs?status=${s}`}
+            className="px-3 py-1 border rounded text-sm"
+          >
+            {s}
+          </Link>
+        ))}
+      </div>
+
+      <table className="w-full text-sm border-collapse">
+        <thead>
+          <tr className="text-left border-b">
+            <th className="py-2 pr-4">Title</th>
+            <th className="py-2 pr-4">Status</th>
+            <th className="py-2">Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(data.jobs ?? []).map((job) => (
+            <tr key={job.id} className="border-b hover:bg-gray-50">
+              <td className="py-2 pr-4">
+                <Link href={`/dashboard/jobs/${job.id}`} className="text-blue-600 hover:underline">
+                  {job.title}
+                </Link>
+              </td>
+              <td className="py-2 pr-4">
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                  job.status === 'open' ? 'bg-green-100 text-green-800' :
+                  job.status === 'draft' ? 'bg-gray-100 text-gray-600' :
+                  'bg-red-100 text-red-700'
+                }`}>
+                  {job.status}
+                </span>
+              </td>
+              <td className="py-2 text-gray-500">
+                {new Date(job.createdAt).toLocaleDateString()}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {data.nextCursor && (
+        <div className="mt-4">
+          <Link
+            href={`/dashboard/jobs?${params.toString()}&cursor=${data.nextCursor}`}
+            className="text-blue-600 text-sm hover:underline"
+          >
+            Next page →
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -3,7 +3,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import {config }from './config.js';
 
-const s3 = new S3Client({
+export const s3 = new S3Client({
   endpoint:        config.S3_ENDPOINT,
   region:          config.S3_REGION,
   credentials: {

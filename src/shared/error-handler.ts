@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { config } from './config.js';
 import { AppError } from './errors.js';
 import { ValidationError } from './validate.js';
+import logger from './logger.js';
 
 export function errorHandler(
   err: unknown,
@@ -10,10 +11,13 @@ export function errorHandler(
   _next: NextFunction, // four-parameter signature required for Express to recognise this as an error handler
 ): void {
   if (err instanceof ValidationError) {
-    const details = err.zodError.errors.map((issue) => ({
-      path: issue.path.join('.'),
-      message: issue.message,
-    }));
+  const details =
+    typeof err.errorArg === 'string'
+      ? [{ path: '', message: err.errorArg }]
+      : err.errorArg.issues.map((issue) => ({
+          path: issue.path.join('.'),
+          message: issue.message,
+        }));
 
     res.status(422).json({
       error: {
@@ -46,7 +50,7 @@ export function errorHandler(
     return;
   }
 
-  console.error('[unhandled error]', err);
+  logger.error({ requestId: req.id, err }, 'unhandled error');
 
   const message =
     config.NODE_ENV === 'development' && err instanceof Error

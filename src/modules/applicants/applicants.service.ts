@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getPresignedUploadUrl } from '../../shared/storage.js';
 import { ValidationError } from '../../shared/validate.js';
 import { pool } from '../../shared/db.js';
+import queue from '../../shared/queue.js';
 
 
 export async function createProfile(
@@ -51,7 +52,18 @@ export async function confirmResumeUpload(
     throw new ForbiddenError('Key does not belong to this applicant');
   }
 
-  return repo.createResume(profile.id, body.filename, body.key);
+  const resume = await repo.createResume(
+    profile.id,
+    body.filename,
+    body.key
+  );
+
+  await queue.add('process-resume', {
+    resumeId: resume.id,
+    s3Key: resume.s3_key,
+  });
+
+  return resume;
 }
 
 export async function addJobToShortlist(userId: string, jobId: string) {
@@ -112,12 +124,20 @@ export async function applyToJobs(
 
     for (const jobId of jobsToInsert) {
       const answers = body.answers[jobId] ?? [];
-      const application = await repo.insertApplication(client, profile.id, jobId, answers, snapshot);
-if (application.created) {
-  created.push(application.id);
-} else {
-  skipped.push(jobId);
-}
+
+      const application = await repo.insertApplication(
+        client,
+        profile.id,
+        jobId,
+        answers,
+        snapshot
+      );
+
+      if (application) {
+        created.push(application.id);
+      } else {
+        skipped.push(jobId);
+      }
     }
 
     await client.query('COMMIT');
@@ -128,5 +148,25 @@ if (application.created) {
     client.release();
   }
 
+  // Queue confirmation emails only after the transaction has committed
+  for (const jobId of jobsToInsert) {
+    const job = openJobs.find((j) => j.id === jobId);
+
+    if (job) {
+      await queue.add('send-application-confirmation', {
+        applicantEmail: profile.email,
+        jobTitle: job.title,
+        companyName: job.company_name,
+      });
+    }
+  }
+
   return { created, skipped };
+}
+
+export async function getMyApplications(userId: string) {
+  const profile = await repo.findApplicantByUserId(userId);
+  if (!profile) throw new NotFoundError('Profile not found');
+
+  return repo.findApplicationsForApplicant(profile.id);
 }

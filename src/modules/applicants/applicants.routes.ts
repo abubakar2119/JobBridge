@@ -17,8 +17,8 @@ router.get('/', (_req, res) => {
 
 router.post('/profile', async (req, res, next) => {
   try {
-    const { full_name, headline, bio, skills } = req.body;
-    const profile = await service.createProfile(req.user!.userId, { full_name, headline, bio, skills });
+    const {headline, bio, skills } = req.body;
+    const profile = await service.createProfile(req.user!.userId, {  headline, bio, skills });
     res.status(201).json(profile);
   } catch (err) {
     next(err);
@@ -96,6 +96,15 @@ router.post('/apply', async (req, res, next) => {
     const { jobIds, answers = {} } = req.body;
     const result = await service.applyToJobs(req.user!.userId, { jobIds, answers });
     res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/applications', async (req, res, next) => {
+  try {
+    const applications = await service.getMyApplications(req.user!.userId);
+    res.json({ applications });
   } catch (err) {
     next(err);
   }

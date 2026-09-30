@@ -37,7 +37,13 @@ INVITATION_EXPIRES_IN_HOURS: z.coerce.number().int().positive().default(72),
 
 APP_BASE_URL: z.string().url().default('http://localhost:3001'),
 
+FRONTEND_URL: z.string().url().default('http://localhost:3000'),
+
 CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
+
+RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
+
+RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
 
 S3_ENDPOINT:        z.string().url(),
 
@@ -49,6 +55,9 @@ S3_ACCESS_KEY_ID:   z.string(),
 
 S3_SECRET_ACCESS_KEY: z.string(),
 
+LOG_LEVEL: z
+  .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
+  .default("debug"),
 });
 
 
@@ -68,3 +77,4 @@ export const config = {
   ...parsed.data,
   cacheTtlSeconds: parsed.data.CACHE_TTL_SECONDS,
 };
+

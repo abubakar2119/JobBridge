@@ -1,8 +1,13 @@
 import { z, ZodSchema, ZodError } from 'zod';
 
 export class ValidationError extends Error {
-  constructor(public readonly zodError: ZodError) {
-    super('Validation failed');
+  constructor(public readonly errorArg: string | ZodError) {
+    const message = 
+      typeof errorArg === 'string'
+        ? errorArg
+        : errorArg.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        
+    super(message || 'Validation failed');
     this.name = 'ValidationError';
   }
 }

@@ -3,6 +3,14 @@ import { db } from '../../shared/db.js';
 import { NotFoundError } from '../../shared/errors.js';
 import { ValidationError } from '../../shared/validate.js';
 
+
+type ApplicationSnapshot = {
+  headline: string | null;
+  bio: string | null;
+  skills: string[];
+  resumeKey: string | null;
+};
+
 /**
  * Asserts that the applicant record identified by applicantId belongs
  * to the user identified by userId (from req.user.userId).
@@ -44,10 +52,20 @@ export async function createApplicantProfile(
 
 export async function findApplicantByUserId(userId: string) {
   const result = await db.query(
-    `SELECT id, user_id, headline, bio, skills, created_at
-     FROM applicants WHERE user_id = $1`,
+    `SELECT
+       a.id,
+       a.user_id,
+       a.headline,
+       a.bio,
+       a.skills,
+       a.created_at,
+       u.email
+     FROM applicants a
+     JOIN users u ON u.id = a.user_id
+     WHERE a.user_id = $1`,
     [userId]
   );
+
   return result.rows[0] ?? null;
 }
 
@@ -208,11 +226,21 @@ export async function insertApplication(
   return { id: existing.rows[0].id, created: false };
 }
 
-export async function getOpenJobs(jobIds: string[]): Promise<{ id: string }[]> {
+export async function getOpenJobs(
+  jobIds: string[]
+): Promise<{ id: string; title: string; company_name: string }[]> {
   const result = await db.query(
-    `SELECT id FROM jobs WHERE id = ANY($1::uuid[]) AND status = 'open'`,
+    `SELECT
+       j.id,
+       j.title,
+       c.name AS company_name
+     FROM jobs j
+     JOIN companies c ON c.id = j.company_id
+     WHERE j.id = ANY($1::uuid[])
+       AND j.status = 'open'`,
     [jobIds]
   );
+
   return result.rows;
 }
 
@@ -241,4 +269,38 @@ export async function buildApplicantSnapshot(applicantId: string): Promise<Appli
     resumeKey,
   };
 
+}
+
+
+export async function findApplicationsForApplicant(applicantId: string) {
+  const result = await db.query(
+    `SELECT
+       a.id,
+       a.job_id,
+       a.stage,
+       a.status,
+       a.created_at,
+       j.title       AS job_title,
+       c.name        AS company_name,
+       -- Most recent upcoming interview with pending outcome
+       (
+         SELECT row_to_json(i_sub)
+         FROM (
+           SELECT id, scheduled_at, meeting_link, notes
+           FROM interviews
+           WHERE application_id = a.id
+             AND outcome = 'pending'
+             AND scheduled_at > now()
+           ORDER BY scheduled_at ASC
+           LIMIT 1
+         ) i_sub
+       ) AS upcoming_interview
+     FROM applications a
+     JOIN jobs      j ON j.id = a.job_id
+     JOIN companies c ON c.id = j.company_id
+     WHERE a.applicant_id = $1
+     ORDER BY a.created_at DESC`,
+    [applicantId]
+  );
+  return result.rows;
 }

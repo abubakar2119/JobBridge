@@ -30,6 +30,31 @@ export async function assertJobOwnership(
   }
 }
 
+export async function findById(jobId: string) {
+  const result = await db.query(
+    `SELECT
+       id,
+       company_id AS "companyId",
+       title,
+       description,
+       location,
+       employment_type AS "employmentType",
+       status,
+       deadline,
+       salary_min AS "salaryMin",
+       salary_max AS "salaryMax",
+       attributes,
+       screening_questions AS "screeningQuestions",
+       created_at AS "createdAt",
+       updated_at AS "updatedAt"
+     FROM jobs
+     WHERE id = $1`,
+    [jobId],
+  );
+
+  return result.rows[0] ?? null;
+}
+
 export async function createJob(
   companyId: string,
   input: CreateJobInput,

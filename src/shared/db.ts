@@ -1,6 +1,7 @@
 // src/shared/db.ts
 
 import pkg from 'pg';
+import type { QueryResult, QueryResultRow } from 'pg';
 import { config } from './config.js';
 
 const { Pool } = pkg;
@@ -28,9 +29,12 @@ export const pool = createDbClient(config.DATABASE_URL);
 
 // Normal db.query with query counter
 export const db = {
-  query: (...args: Parameters<typeof pool.query>) => {
+  query<T extends QueryResultRow = any>(
+    text: string,
+    values?: any[],
+  ): Promise<QueryResult<T>> {
     _queryCount++;
-    return pool.query(...args);
+    return pool.query<T>(text, values);
   },
 };
 

@@ -1,1 +1,80 @@
-'use client'; import {useRouter} from 'next/navigation'; export default function NewJob(){const r=useRouter();async function submit(e:React.FormEvent<HTMLFormElement>){e.preventDefault();const f=new FormData(e.currentTarget);const response=await fetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:f.get('title'),description:f.get('description'),location:f.get('location'),employment_type:f.get('employment_type'),status:'draft',screening_questions:[]})});if(response.ok){const {jobId}=await response.json();r.push(`/dashboard/jobs/${jobId}`)}}return <form onSubmit={submit}><h1>Post a job</h1><input name="title" placeholder="Title" required/><textarea name="description" placeholder="Description" required/><input name="location" placeholder="Location" required/><input name="employment_type" placeholder="Employment type" required/><button>Save as draft</button></form>}
+// frontend/app/dashboard/jobs/new/page.tsx
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function NewJobPage() {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const form = new FormData(e.currentTarget);
+    const body = {
+      title: form.get('title') as string,
+      description: form.get('description') as string,
+      location: form.get('location') as string,
+      employment_type: form.get('employment_type') as string,
+    };
+
+    // Client component calls a Next.js API route (not the backend directly)
+    // to keep the token in httpOnly cookies
+    const res = await fetch('/api/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (res.ok) {
+      const { jobId } = await res.json();
+      router.push(`/dashboard/jobs/${jobId}`);
+    } else {
+      const data = await res.json();
+      setError(data.error ?? 'Something went wrong.');
+    }
+    setLoading(false);
+  }
+
+  return (
+    <div className="p-6 max-w-xl">
+      <h1 className="text-2xl font-semibold mb-6">Post a job</h1>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Title *</label>
+          <input name="title" required className="w-full border rounded px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Description</label>
+          <textarea name="description" rows={5} className="w-full border rounded px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Location</label>
+          <input name="location" className="w-full border rounded px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Employment type</label>
+          <select name="employment_type" className="w-full border rounded px-3 py-2 text-sm">
+            <option value="">— select —</option>
+            <option value="full_time">Full-time</option>
+            <option value="part_time">Part-time</option>
+            <option value="contract">Contract</option>
+            <option value="internship">Internship</option>
+          </select>
+        </div>
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-blue-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
+        >
+          {loading ? 'Saving…' : 'Save as draft'}
+        </button>
+      </form>
+    </div>
+  );
+}
