@@ -64,7 +64,7 @@ export async function createJob(
     `INSERT INTO jobs
        (id, company_id, title, description, location, employment_type,
         status, salary_min, salary_max, attributes, screening_questions, created_at)
-     VALUES ($1, $2, $3, $4, $5, $6, 'draft', $7, $8, $9, $10, NOW())`,
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,$11, NOW())`,
     [
       jobId,
       companyId,
@@ -72,6 +72,7 @@ export async function createJob(
       input.description ?? null,
       input.location  ?? null,
       input.employment_type ?? null,
+      input.status,
       input.salary_min ?? null,
       input.salary_max ?? null,
       JSON.stringify(input.attributes ?? {}),

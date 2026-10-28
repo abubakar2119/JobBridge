@@ -56,6 +56,15 @@ router.patch('/companies/:id/suspend', async (req, res, next) => {
   }
 });
 
+router.patch('/companies/:id/pending', async (req, res, next) => {
+  try {
+    const company = await service.pendingCompany(req.params.id);
+    res.json({ company });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/jobs', async (req, res, next) => {
   try {
     const jobs = await service.listJobs(

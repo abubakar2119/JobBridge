@@ -36,10 +36,17 @@ export default async function AdminLayout({
 
  return (
   <>
-    <nav>
-      <a href="/admin/companies">Companies</a>
-      <a href="/admin/jobs">Jobs</a>
-      <a href="/admin/users">Users</a>
+    
+  <nav className="flex flex-wrap items-center p-6 justify-center ">
+  
+      <a href="/admin/companies" className='bg-amber-700 p-3 m-2 mr-2.5
+      rounded-2xl cursor-pointer font-bold text-white'>Click here to get companies</a>
+  
+      <a href="/admin/jobs" className='bg-blue-400 p-3 m-2 
+      rounded-2xl cursor-pointer font-bold text-white'>click here to get jobs</a>
+  
+      <a href="/admin/users" className='bg-black p-3 m-2 
+      rounded-2xl cursor-pointer font-bold text-white'> Click here to get users</a>
     </nav>
 
     <main>{children}</main>

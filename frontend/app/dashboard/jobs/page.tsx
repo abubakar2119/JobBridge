@@ -27,7 +27,7 @@ const resolvedSearchParams = await searchParams;
         </Link>
       </div>
 
-      {/* Status filter */}
+      
       <div className="flex gap-2 mb-4">
         {['all', 'draft', 'open', 'closed'].map((s) => (
           <Link

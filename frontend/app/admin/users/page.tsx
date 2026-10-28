@@ -35,28 +35,29 @@ export default async function UsersPage() {
 
   return (
     <section>
-      <h1>Users</h1>
+      <h1 className="mx-auto mt-6 mb-4 w-fit rounded-2xl bg-blue-600
+       px-6 py-3 text-2xl font-bold text-white">Users</h1>
 
-      <table>
-        <thead>
+      <table className="w-full border-collapse text-left">
+        <thead className="bg-slate-100 text-sm uppercase text-slate-600">
           <tr>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th>Created</th>
-            <th>Actions</th>
+            <th className="px-5 py-4">Email</th>
+            <th className="px-5 py-4">Role</th>
+            <th className="px-5 py-4">Status</th>
+            <th className="px-5 py-4">Created</th>
+            <th className="px-5 py-4">Actions</th>
           </tr>
         </thead>
 
-        <tbody>
+        <tbody className="divide-y divide-slate-200">
           {users.map((user) => (
-            <tr key={user.id}>
-              <td>{user.email}</td>
-              <td>{user.role}</td>
-              <td>{user.status}</td>
-              <td>{new Date(user.created_at).toLocaleDateString()}</td>
+            <tr key={user.id} className="transition hover:bg-slate-50">
+              <td className="px-5 py-4 font-semibold text-slate-800">{user.email}</td>
+              <td className="px-5 py-4 text-slate-600">{user.role}</td>
+              <td className="px-5 py-4">{user.status}</td>
+              <td className="px-5 py-4 text-slate-600">{new Date(user.created_at).toLocaleDateString()}</td>
 
-              <td>
+              <td className="px-5 py-4">
                 <form action={suspendUser}>
                   <input
                     type="hidden"
@@ -66,6 +67,12 @@ export default async function UsersPage() {
                   <button
                     type="submit"
                     disabled={user.status === 'suspended'}
+                    className="rounded-lg bg-emerald-600 px-4 py-2
+                    text-sm font-semibold text-white shadow-sm
+                    transition duration-200 hover:bg-emerald-700
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500
+                    focus:ring-offset-2
+                    disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Suspend
                   </button>
@@ -80,6 +87,12 @@ export default async function UsersPage() {
                   <button
                     type="submit"
                     disabled={user.status === 'active'}
+                     className="rounded-lg bg-blue-950 px-4 py-2
+                     text-sm font-semibold text-white shadow-sm
+                      transition duration-200 hover:bg-red-800
+                      focus:outline-none focus:ring-2 focus:ring-red-800
+                      focus:ring-offset-2
+                      disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Activate
                   </button>

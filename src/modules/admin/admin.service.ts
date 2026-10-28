@@ -13,6 +13,13 @@ export async function verifyCompany(id: string) {
   return repo.setCompanyStatus(id, 'verified');
 }
 
+export async function pendingCompany(id: string) {
+  const company = await repo.findCompanyById(id);
+  if (!company) throw new NotFoundError('Company not found');
+  if (company.status === 'pending') throw new ConflictError('Company is already pending');
+  return repo.setCompanyStatus(id, 'pending');
+}
+
 export async function suspendCompany(id: string) {
   const company = await repo.findCompanyById(id);
   if (!company) throw new NotFoundError('Company not found');

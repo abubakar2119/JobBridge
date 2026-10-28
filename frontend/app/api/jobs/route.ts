@@ -6,6 +6,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
 const token = (await cookies()).get("access_token")?.value;
 
+
   const res = await fetch(`${process.env.API_URL}/api/jobs`, {
     method: 'POST',
     headers: {

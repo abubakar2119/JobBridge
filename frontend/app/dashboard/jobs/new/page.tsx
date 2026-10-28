@@ -15,11 +15,17 @@ export default function NewJobPage() {
     setError(null);
 
     const form = new FormData(e.currentTarget);
+
+    const submitter = (e.nativeEvent as SubmitEvent)
+    .submitter as HTMLButtonElement | null;
+
+   const status = submitter?.value === 'open' ? 'open' : 'draft';
     const body = {
       title: form.get('title') as string,
       description: form.get('description') as string,
       location: form.get('location') as string,
       employment_type: form.get('employment_type') as string,
+      status
     };
 
     // Client component calls a Next.js API route (not the backend directly)
@@ -29,6 +35,8 @@ export default function NewJobPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
+
+    
 
     if (res.ok) {
       const { jobId } = await res.json();
@@ -69,10 +77,19 @@ export default function NewJobPage() {
         {error && <p className="text-red-600 text-sm">{error}</p>}
         <button
           type="submit"
+          value="draft"
           disabled={loading}
-          className="bg-blue-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
+          className="bg-blue-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50 flex-col flex flex-wrap"
         >
           {loading ? 'Saving…' : 'Save as draft'}
+        </button>
+        <button
+          type="submit"
+          value="open"
+          disabled={loading}
+          className="bg-blue-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50 flex flex-col flex-wrap"
+        >
+          {loading ? 'Saving…' : 'Save as open'}
         </button>
       </form>
     </div>
