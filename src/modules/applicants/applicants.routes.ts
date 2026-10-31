@@ -5,8 +5,6 @@ import * as service from './applicants.service.js';
 
 
 const router = Router();
-router.use(authMiddleware, requireRole('applicant'));
-
 // Every route on this router requires a valid token with role 'applicant'.
 router.use(authMiddleware, requireRole('applicant'));
 

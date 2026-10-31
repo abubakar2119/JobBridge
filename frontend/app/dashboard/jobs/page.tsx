@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
 
+
 export default async function JobsPage({
   searchParams,
 }: {
@@ -19,6 +20,7 @@ const resolvedSearchParams = await searchParams;
   const data: { jobs: any[]; nextCursor: string | null } = await res.json();
 
   return (
+
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-semibold">Jobs</h1>
@@ -43,9 +45,12 @@ const resolvedSearchParams = await searchParams;
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr className="text-left border-b">
-            <th className="py-2 pr-4">Title</th>
-            <th className="py-2 pr-4">Status</th>
-            <th className="py-2">Created</th>
+              <th className="py-2 pr-4">Title</th>
+              <th className="py-2 pr-4">Status</th>
+              <th className="py-2">Created</th>
+              
+             
+              
           </tr>
         </thead>
         <tbody>
@@ -56,6 +61,7 @@ const resolvedSearchParams = await searchParams;
                   {job.title}
                 </Link>
               </td>
+              
               <td className="py-2 pr-4">
                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                   job.status === 'open' ? 'bg-green-100 text-green-800' :

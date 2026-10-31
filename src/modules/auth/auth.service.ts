@@ -1,4 +1,5 @@
 // src/modules/auth/auth.service.ts
+import { createApplicantProfile } from '../applicants/applicants.repo.js';
 import { generateOtp, hashOtp } from '../../shared/otp.js';
 import { sendVerificationEmail } from '../../shared/mailer.js';
 import {
@@ -44,25 +45,46 @@ const DUMMY_HASH =
 export async function register(
   input: RegisterInput,
 ): Promise<{ id: string; email: string; role: string }> {
+
   const existing = await findUserByEmail(input.email);
+
   if (existing) {
     throw new ConflictError('Email already taken');
   }
 
   const passwordHash = await hashPassword(input.password);
-  const user = await createUser(input.email, passwordHash, input.role);
-  // user.id is the newly created user's UUID.
-  // status is 'pending' — set by the INSERT in auth.repo.ts.
 
-  // Generate a 6-digit OTP and store its hash.
+  const user = await createUser(
+    input.email,
+    passwordHash,
+    input.role
+  );
+
+  // Automatically create applicant profile
+  if (input.role === 'applicant') {
+    await createApplicantProfile(
+      user.id,
+      input.full_name,
+      null,
+      null,
+      []
+    );
+  }
+
   const otp = generateOtp();
   const otpHash = hashOtp(otp);
-  const expiresAt = new Date(Date.now() + config.OTP_EXPIRES_IN_MINUTES * 60 * 1000);
 
-  await createEmailVerification(user.id, otpHash, expiresAt);
+  const expiresAt = new Date(
+    Date.now() +
+    config.OTP_EXPIRES_IN_MINUTES * 60 * 1000
+  );
 
-  // Send the raw OTP to the user's email address.
-  // The raw OTP is never stored — only the hash is in the database.
+  await createEmailVerification(
+    user.id,
+    otpHash,
+    expiresAt
+  );
+
   await sendVerificationEmail(input.email, otp);
 
   return user;

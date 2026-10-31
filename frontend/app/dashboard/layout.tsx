@@ -1,6 +1,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import SignOutButton from '@/components/SignOutButton';
 
 
 
@@ -12,18 +13,16 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900">
 
-      <header className="flex items-center justify-between border-b bg-white px-6 py-4">
-        <h1 className="text-2xl font-bold">JobBridge Dashboard</h1>
 
-        <form action="/api/auth/logout" method="POST">
-          <button
-            type="submit"
-            className="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 cursor-pointer"
-          >
-            Sign out
-          </button>
-        </form>
+      <header className="flex items-center justify-between border-b bg-white px-4 py-4 sm:px-6">
+        <h1 className="text-lg font-bold sm:text-2xl">
+          JobBridge Dashboard
+        </h1>
+
+       <SignOutButton />
+        
       </header>
+
 
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 p-6 md:grid-cols-[220px_1fr]">
 
@@ -43,14 +42,14 @@ export default function DashboardLayout({
               Company Members
             </Link>
 
-           
+
             <Link
               href="/dashboard/applications"
               className="block rounded-md px-3 py-2 hover:bg-gray-100"
             >
               Applications
             </Link>
-            
+
 
             <Link
               href="/dashboard/profile"

@@ -26,6 +26,7 @@ export default function NewJobPage() {
       location: form.get('location') as string,
       employment_type: form.get('employment_type') as string,
       status
+
     };
 
     // Client component calls a Next.js API route (not the backend directly)

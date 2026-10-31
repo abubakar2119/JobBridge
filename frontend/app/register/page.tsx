@@ -25,6 +25,7 @@ export default function Register() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
+            full_name: form.get("full_name"),
             email: form.get("email"),
             password: form.get("password"),
             role: "applicant",
@@ -55,6 +56,15 @@ export default function Register() {
         </h1>
 
         <form onSubmit={submit} className="flex flex-col gap-4">
+          <input
+            name="full_name"
+            type="text"
+            placeholder="Full Name"
+            autoComplete="name"
+            minLength={2}
+            required
+            className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900"
+          />
           <input
             name="email"
             type="email"

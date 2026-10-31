@@ -37,16 +37,19 @@ export async function assertApplicantOwnership(
 
 export async function createApplicantProfile(
   userId: string,
-  headline: string,
-  bio: string,
-  skills: string[]
+  fullName: string,
+  headline: string | null = null,
+  bio: string | null = null,
+  skills: string[] = []
 ) {
   const result = await db.query(
-    `INSERT INTO applicants (user_id, headline, bio, skills)
-     VALUES ($1, $2, $3, $4)
-     RETURNING id, user_id, headline, bio, skills, created_at`,
-    [userId, headline, bio, skills]
+    `INSERT INTO applicants
+      (user_id, full_name, headline, bio, skills)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id, user_id, full_name, headline, bio, skills, created_at`,
+    [userId, fullName, headline, bio, skills]
   );
+
   return result.rows[0];
 }
 

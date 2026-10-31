@@ -13,7 +13,7 @@ export async function createProfile(
 ) {
   const existing = await repo.findApplicantByUserId(userId);
   if (existing) throw new ConflictError('Profile already exists');
-  return repo.createApplicantProfile(userId, body.headline, body.bio, body.skills);
+  return repo.createApplicantProfile(userId, body.headline, body.bio);
 }
 
 export async function getProfile(userId: string) {
