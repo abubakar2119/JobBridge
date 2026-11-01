@@ -4,7 +4,7 @@ import {config } from './config.js';
 const logger = pino({
   level: config.LOG_LEVEL,
   transport:
-    config.NODE_ENV !== 'production'
+    config.NODE_ENV !== 'production' && !process.env.VERCEL
       ? { target: 'pino-pretty', options: { colorize: true } }
       : undefined,
 });
